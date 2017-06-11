@@ -53,53 +53,6 @@ public class LastFm implements LastFmMethods {
         httpClient.close();
     }
 
-    /*  METHODS  */
-
-    @Override
-    public boolean unscrobble(String artist, String trackName, int timestamp) {
-        String trackString = String.format("%s - %s (%d)",artist,trackName,timestamp);
-        log.debug(String.format("Unscrobbling track %s -> %s",trackString,unscrobbleUrl));
-
-        HttpPost post = new HttpPost(unscrobbleUrl);
-        post.setHeader("Referer",userUrl);
-
-        List<BasicNameValuePair> params = new ArrayList<>();
-        params.add(new BasicNameValuePair("csrfmiddlewaretoken", HttpUtils.getCookieValue(cookieStore, "csrftoken")));
-        params.add(new BasicNameValuePair("artist_name", artist));
-        params.add(new BasicNameValuePair("track_name", trackName));
-        params.add(new BasicNameValuePair("timestamp", "" + timestamp));
-        params.add(new BasicNameValuePair("ajax", "1"));
-
-        try {
-            UrlEncodedFormEntity paramEntity = new UrlEncodedFormEntity(params);
-            post.setEntity(paramEntity);
-        } catch (UnsupportedEncodingException e) {
-            log.debug(String.format("Could not create parameter list (%s)",e.getMessage()));
-        }
-
-        CloseableHttpResponse response = null;
-
-        try {
-            response = httpClient.execute(post, httpContext);
-            int statusCode = response.getStatusLine().getStatusCode();
-
-            if(statusCode != 200){
-                log.debug(String.format("Failed to unscrobble track %s! HTTP status: %s",trackString,response.getStatusLine()));
-                return false;
-            } else {
-                log.debug(String.format("Succesfully unscrobbled track %s",trackString));
-            }
-        } catch (Exception e) {
-            log.debug(String.format("Could not post to %s (%s)",unscrobbleUrl,e.getMessage()));
-        } finally {
-            try {
-                HttpUtils.readResponse(response);
-            } catch (Exception ignored) {}
-        }
-
-        return true;
-    }
-
     /*  LOGIN  */
 
     public boolean init(String username, String password){
@@ -121,8 +74,8 @@ public class LastFm implements LastFmMethods {
     private boolean login(String username, String password) {
         log.debug(String.format("Logging in with username \"%s\" and password %s",username,"********"));
 
-        HttpPost post = new HttpPost(Constants.URL_LOGIN);
-        post.setHeader("Referer",Constants.URL_LOGIN);
+        HttpPost request = new HttpPost(Constants.URL_LOGIN);
+        request.setHeader("Referer",Constants.URL_LOGIN);
 
         List<BasicNameValuePair> params = new ArrayList<>();
         params.add(new BasicNameValuePair("csrfmiddlewaretoken", HttpUtils.getCookieValue(cookieStore, "csrftoken")));
@@ -131,7 +84,7 @@ public class LastFm implements LastFmMethods {
 
         try {
             UrlEncodedFormEntity paramEntity = new UrlEncodedFormEntity(params);
-            post.setEntity(paramEntity);
+            request.setEntity(paramEntity);
         } catch (UnsupportedEncodingException e) {
             log.debug(String.format("Could not create parameter list (%s)",e.getMessage()));
         }
@@ -139,7 +92,7 @@ public class LastFm implements LastFmMethods {
         CloseableHttpResponse response = null;
 
         try {
-            response = httpClient.execute(post, httpContext);
+            response = httpClient.execute(request, httpContext);
             int statusCode = response.getStatusLine().getStatusCode();
 
             if(statusCode != 200){
@@ -165,10 +118,10 @@ public class LastFm implements LastFmMethods {
 
     private  boolean fetchCSRFToken() {
         log.debug("Fetching CSRF token...");
-        HttpGet post = new HttpGet(Constants.URL_LOGIN);
+        HttpGet request = new HttpGet(Constants.URL_LOGIN);
         CloseableHttpResponse response = null;
         try {
-            response = httpClient.execute(post, httpContext);
+            response = httpClient.execute(request, httpContext);
             int statusCode = response.getStatusLine().getStatusCode();
 
             if(statusCode != 200){
@@ -187,6 +140,53 @@ public class LastFm implements LastFmMethods {
 
         } catch (IOException e) {
             log.debug(String.format("Could not fetch the page %s (%s)",Constants.URL_LOGIN,e.getMessage()));
+        } finally {
+            try {
+                HttpUtils.readResponse(response);
+            } catch (Exception ignored) {}
+        }
+
+        return true;
+    }
+
+    /*  METHODS  */
+
+    @Override
+    public boolean unscrobble(String artist, String trackName, int timestamp) {
+        String trackString = String.format("%s - %s (%d)",artist,trackName,timestamp);
+        log.debug(String.format("Unscrobbling track %s -> %s",trackString,unscrobbleUrl));
+
+        HttpPost request = new HttpPost(unscrobbleUrl);
+        request.setHeader("Referer",userUrl);
+
+        List<BasicNameValuePair> params = new ArrayList<>();
+        params.add(new BasicNameValuePair("csrfmiddlewaretoken", HttpUtils.getCookieValue(cookieStore, "csrftoken")));
+        params.add(new BasicNameValuePair("artist_name", artist));
+        params.add(new BasicNameValuePair("track_name", trackName));
+        params.add(new BasicNameValuePair("timestamp", "" + timestamp));
+        params.add(new BasicNameValuePair("ajax", "1"));
+
+        try {
+            UrlEncodedFormEntity paramEntity = new UrlEncodedFormEntity(params);
+            request.setEntity(paramEntity);
+        } catch (UnsupportedEncodingException e) {
+            log.debug(String.format("Could not create parameter list (%s)",e.getMessage()));
+        }
+
+        CloseableHttpResponse response = null;
+
+        try {
+            response = httpClient.execute(request, httpContext);
+            int statusCode = response.getStatusLine().getStatusCode();
+
+            if(statusCode != 200){
+                log.debug(String.format("Failed to unscrobble track %s! HTTP status: %s",trackString,response.getStatusLine()));
+                return false;
+            } else {
+                log.debug(String.format("Succesfully unscrobbled track %s",trackString));
+            }
+        } catch (Exception e) {
+            log.debug(String.format("Could not post to %s (%s)",unscrobbleUrl,e.getMessage()));
         } finally {
             try {
                 HttpUtils.readResponse(response);
