@@ -57,6 +57,13 @@ public class Unscrobbler {
 
     /*  LOGIN  */
 
+    /**
+     * Performs a login to last.fm
+     * @param username The username of the last.fm account
+     * @param password The password of the last.fm account
+     * @throws CsrfTokenFetchFailedException When a CSRF token could not be fetched
+     * @throws AuthenticationFailedException When the authentication failed. This will most likely be due to invalid credentials.
+     */
     public void login(String username, String password) throws CsrfTokenFetchFailedException, AuthenticationFailedException {
         httpContext = HttpClientContext.create();
         cookieStore = new BasicCookieStore();
@@ -155,6 +162,13 @@ public class Unscrobbler {
 
     /*  METHODS  */
 
+    /**
+     * Unscrobbles a track from a last.fm account
+     * @param artist The name of the artist
+     * @param trackName The name of the track
+     * @param timestamp The UNIX timestamp (the number of seconds that have elapsed since January 1, 1970 midnight UTC)
+     * @return true if the unscrobble request was succesful; false otherwise
+     */
     public boolean unscrobble(String artist, String trackName, int timestamp){
         if(timestamp < 0){
             return false;
@@ -163,6 +177,13 @@ public class Unscrobbler {
         return unscrobble(artist,trackName,"" + timestamp);
     }
 
+    /**
+     * Unscrobbles a track from a last.fm account
+     * @param artist The name of the artist
+     * @param trackName The name of the track
+     * @param timestamp The UNIX timestamp (the number of seconds that have elapsed since January 1, 1970 midnight UTC)
+     * @return true if the unscrobble request was succesful; false otherwise
+     */
     public boolean unscrobble(String artist, String trackName, String timestamp) {
         if(artist == null || trackName == null){
             return false;
