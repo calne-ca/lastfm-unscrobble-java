@@ -14,8 +14,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.beardbot.lastfm_unscrobble;
+package net.beardbot.lastfm.unscrobble;
 
+import net.beardbot.lastfm.unscrobble.exception.AuthenticationFailedException;
+import net.beardbot.lastfm.unscrobble.exception.CsrfTokenFetchFailedException;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -35,8 +37,8 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class LastFm implements LastFmMethods {
-    private static final Logger log = LoggerFactory.getLogger(LastFm.class);
+public class Unscrobbler {
+    private static final Logger log = LoggerFactory.getLogger(Unscrobbler.class);
 
     private CloseableHttpClient httpClient;
     private HttpClientContext httpContext;
@@ -55,32 +57,34 @@ public class LastFm implements LastFmMethods {
 
     /*  LOGIN  */
 
-    public boolean init(String username, String password){
+    public void login(String username, String password) throws CsrfTokenFetchFailedException, AuthenticationFailedException {
         httpContext = HttpClientContext.create();
         cookieStore = new BasicCookieStore();
         httpContext.setCookieStore(cookieStore);
         httpClient = HttpClientBuilder.create().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
         if (!fetchCSRFToken()){
-            return false;
+            throw new CsrfTokenFetchFailedException("Unable to fetch CSRF Token from Lastfm.");
         }
 
         userUrl = userUrl.replace(Constants.PLACEHOLDER_USER,username);
         unscrobbleUrl = unscrobbleUrl.replace(Constants.PLACEHOLDER_USER,username);
 
-        return login(username,password);
+        if(!authenticate(username,password)){
+            throw new AuthenticationFailedException("Authentication failed! Are username and password correct?");
+        }
     }
 
-    private boolean login(String username, String password) {
+    private boolean authenticate(String username, String password) {
         log.debug(String.format("Logging in with username \"%s\" and password %s",username,"********"));
 
         HttpPost request = new HttpPost(Constants.URL_LOGIN);
-        request.setHeader("Referer",Constants.URL_LOGIN);
+        request.setHeader(Constants.FIELD_REFERER,Constants.URL_LOGIN);
 
         List<BasicNameValuePair> params = new ArrayList<>();
-        params.add(new BasicNameValuePair("csrfmiddlewaretoken", HttpUtils.getCookieValue(cookieStore, "csrftoken")));
-        params.add(new BasicNameValuePair("username", username));
-        params.add(new BasicNameValuePair("password", password));
+        params.add(new BasicNameValuePair(Constants.FIELD_CSRFTOKEN, HttpUtils.getCookieValue(cookieStore, Constants.COOKIE_CSRFTOKEN)));
+        params.add(new BasicNameValuePair(Constants.FIELD_USERNAME, username));
+        params.add(new BasicNameValuePair(Constants.FIELD_PASSWORD, password));
 
         try {
             UrlEncodedFormEntity paramEntity = new UrlEncodedFormEntity(params);
@@ -116,7 +120,7 @@ public class LastFm implements LastFmMethods {
         return true;
     }
 
-    private  boolean fetchCSRFToken() {
+    private boolean fetchCSRFToken() {
         log.debug("Fetching CSRF token...");
         HttpGet request = new HttpGet(Constants.URL_LOGIN);
         CloseableHttpResponse response = null;
@@ -151,20 +155,30 @@ public class LastFm implements LastFmMethods {
 
     /*  METHODS  */
 
-    @Override
-    public boolean unscrobble(String artist, String trackName, int timestamp) {
-        String trackString = String.format("%s - %s (%d)",artist,trackName,timestamp);
+    public boolean unscrobble(String artist, String trackName, int timestamp){
+        if(timestamp < 0){
+            return false;
+        }
+
+        return unscrobble(artist,trackName,"" + timestamp);
+    }
+
+    public boolean unscrobble(String artist, String trackName, String timestamp) {
+        if(artist == null || trackName == null){
+            return false;
+        }
+
+        String trackString = String.format("%s - %s (%s)",artist,trackName,timestamp);
         log.debug(String.format("Unscrobbling track %s -> %s",trackString,unscrobbleUrl));
 
         HttpPost request = new HttpPost(unscrobbleUrl);
-        request.setHeader("Referer",userUrl);
+        request.setHeader(Constants.FIELD_REFERER,userUrl);
 
         List<BasicNameValuePair> params = new ArrayList<>();
-        params.add(new BasicNameValuePair("csrfmiddlewaretoken", HttpUtils.getCookieValue(cookieStore, "csrftoken")));
-        params.add(new BasicNameValuePair("artist_name", artist));
-        params.add(new BasicNameValuePair("track_name", trackName));
-        params.add(new BasicNameValuePair("timestamp", "" + timestamp));
-        params.add(new BasicNameValuePair("ajax", "1"));
+        params.add(new BasicNameValuePair(Constants.FIELD_CSRFTOKEN, HttpUtils.getCookieValue(cookieStore, Constants.COOKIE_CSRFTOKEN)));
+        params.add(new BasicNameValuePair(Constants.FIELD_ARTIST, artist));
+        params.add(new BasicNameValuePair(Constants.FIELD_TRACK, trackName));
+        params.add(new BasicNameValuePair(Constants.FIELD_TIMESTAMP, timestamp));
 
         try {
             UrlEncodedFormEntity paramEntity = new UrlEncodedFormEntity(params);

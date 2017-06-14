@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.beardbot.lastfm_unscrobble;
+package net.beardbot.lastfm.unscrobble;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.client.CookieStore;

@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.beardbot.lastfm_unscrobble;
+package net.beardbot.lastfm.unscrobble;
 
 class Constants {
     static final String PLACEHOLDER_USER = "{user}";
@@ -22,4 +22,15 @@ class Constants {
     static final String URL_LOGIN = "https://secure.last.fm/login";
     static final String URL_USER = "https://www.last.fm/user/" + PLACEHOLDER_USER;
     static final String URL_UNSCROBBLE = "https://www.last.fm/user/" + PLACEHOLDER_USER + "/unscrobble";
+
+    static final String FIELD_REFERER = "Referer";
+    static final String FIELD_CSRFTOKEN = "csrfmiddlewaretoken";
+    static final String COOKIE_CSRFTOKEN = "csrftoken";
+
+    static final String FIELD_USERNAME = "username";
+    static final String FIELD_PASSWORD = "password";
+
+    static final String FIELD_ARTIST = "artist_name";
+    static final String FIELD_TRACK = "track_name";
+    static final String FIELD_TIMESTAMP = "timestamp";
 }
