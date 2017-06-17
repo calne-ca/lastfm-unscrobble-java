@@ -13,6 +13,15 @@ try {
 unscrobbler.unscrobble("LIQ","[un]INSOMNIA","1497478667");
 ```
 
+### Maven Dependency
+```xml
+<dependency>
+    <groupId>net.beardbot</groupId>
+    <artifactId>lastfm-unscrobble</artifactId>
+    <version>0.1</version>
+</dependency>
+```
+
 ### Enable debug logging
 ```bash
 -Dorg.slf4j.simpleLogger.defaultLogLevel=DEBUG
