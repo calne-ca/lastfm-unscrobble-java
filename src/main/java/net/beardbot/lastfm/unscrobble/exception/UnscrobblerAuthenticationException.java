@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017 Joscha Düringer
+ * Copyright (C) 2018 Joscha Düringer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,26 +16,23 @@
  */
 package net.beardbot.lastfm.unscrobble.exception;
 
-/**
- * Created by Joscha on 14.06.2017.
- */
-public class CsrfTokenFetchFailedException extends Exception {
-    public CsrfTokenFetchFailedException() {
+public class UnscrobblerAuthenticationException extends Exception {
+    public UnscrobblerAuthenticationException() {
     }
 
-    public CsrfTokenFetchFailedException(String message) {
+    public UnscrobblerAuthenticationException(String message) {
         super(message);
     }
 
-    public CsrfTokenFetchFailedException(String message, Throwable cause) {
+    public UnscrobblerAuthenticationException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public CsrfTokenFetchFailedException(Throwable cause) {
+    public UnscrobblerAuthenticationException(Throwable cause) {
         super(cause);
     }
 
-    public CsrfTokenFetchFailedException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+    public UnscrobblerAuthenticationException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 }

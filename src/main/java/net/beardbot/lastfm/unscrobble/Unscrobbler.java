@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017 Joscha Düringer
+ * Copyright (C) 2018 Joscha Düringer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,8 +16,8 @@
  */
 package net.beardbot.lastfm.unscrobble;
 
-import net.beardbot.lastfm.unscrobble.exception.AuthenticationFailedException;
-import net.beardbot.lastfm.unscrobble.exception.CsrfTokenFetchFailedException;
+import lombok.extern.slf4j.Slf4j;
+import net.beardbot.lastfm.unscrobble.exception.UnscrobblerAuthenticationException;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -29,23 +29,23 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.apache.http.message.BasicNameValuePair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
-public class Unscrobbler {
-    private static final Logger log = LoggerFactory.getLogger(Unscrobbler.class);
+import static net.beardbot.lastfm.unscrobble.Constants.*;
 
+@Slf4j
+public class Unscrobbler {
     private CloseableHttpClient httpClient;
     private HttpClientContext httpContext;
     private CookieStore cookieStore;
 
-    private String userUrl = Constants.URL_USER;
-    private String unscrobbleUrl = Constants.URL_UNSCROBBLE;
+    private String userUrl;
+    private String unscrobbleUrl;
 
     @Override
     protected void finalize() throws Throwable {
@@ -61,43 +61,43 @@ public class Unscrobbler {
      * Performs a login to last.fm
      * @param username The username of the last.fm account
      * @param password The password of the last.fm account
-     * @throws CsrfTokenFetchFailedException When a CSRF token could not be fetched
-     * @throws AuthenticationFailedException When the authentication failed. This will most likely be due to invalid credentials.
+     * @throws UnscrobblerAuthenticationException When the authentication failed. This will most likely be due to invalid credentials.
      */
-    public void login(String username, String password) throws CsrfTokenFetchFailedException, AuthenticationFailedException {
+    public void login(String username, String password) throws UnscrobblerAuthenticationException {
         httpContext = HttpClientContext.create();
         cookieStore = new BasicCookieStore();
         httpContext.setCookieStore(cookieStore);
         httpClient = HttpClientBuilder.create().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
         if (!fetchCSRFToken()){
-            throw new CsrfTokenFetchFailedException("Unable to fetch CSRF Token from Lastfm.");
+            throw new UnscrobblerAuthenticationException("Unable to fetch CSRF Token from Lastfm.");
         }
 
-        userUrl = userUrl.replace(Constants.PLACEHOLDER_USER,username);
-        unscrobbleUrl = unscrobbleUrl.replace(Constants.PLACEHOLDER_USER,username);
+        userUrl = URL_USER.replace(PLACEHOLDER_USER,username);
+        unscrobbleUrl = URL_UNSCROBBLE.replace(PLACEHOLDER_USER,username);
 
         if(!authenticate(username,password)){
-            throw new AuthenticationFailedException("Authentication failed! Are username and password correct?");
+            throw new UnscrobblerAuthenticationException("Authentication failed! Are username and password correct?");
         }
     }
 
     private boolean authenticate(String username, String password) {
         log.debug(String.format("Logging in with username \"%s\" and password %s",username,"********"));
 
-        HttpPost request = new HttpPost(Constants.URL_LOGIN);
-        request.setHeader(Constants.FIELD_REFERER,Constants.URL_LOGIN);
+        HttpPost request = new HttpPost(URL_LOGIN);
+        request.setHeader(FIELD_REFERER,URL_LOGIN);
 
         List<BasicNameValuePair> params = new ArrayList<>();
-        params.add(new BasicNameValuePair(Constants.FIELD_CSRFTOKEN, HttpUtils.getCookieValue(cookieStore, Constants.COOKIE_CSRFTOKEN)));
-        params.add(new BasicNameValuePair(Constants.FIELD_USERNAME, username));
-        params.add(new BasicNameValuePair(Constants.FIELD_PASSWORD, password));
+        params.add(new BasicNameValuePair(FIELD_CSRFTOKEN, HttpUtils.getCookieValue(cookieStore, COOKIE_CSRFTOKEN)));
+        params.add(new BasicNameValuePair(FIELD_USERNAME, username));
+        params.add(new BasicNameValuePair(FIELD_PASSWORD, password));
 
         try {
             UrlEncodedFormEntity paramEntity = new UrlEncodedFormEntity(params);
             request.setEntity(paramEntity);
         } catch (UnsupportedEncodingException e) {
-            log.debug(String.format("Could not create parameter list (%s)",e.getMessage()));
+            log.warn(String.format("Failed to create parameter list: %s",e.getMessage()));
+            return false;
         }
 
         CloseableHttpResponse response = null;
@@ -108,59 +108,75 @@ public class Unscrobbler {
 
             if(statusCode != 200){
                 if(statusCode == 403 || statusCode == 401){
-                    log.debug("Authentication failed! Are username and password correct?");
+                    log.warn("Authentication failed! Are username and password correct?");
                 }else {
-                    log.debug(String.format("Login failed! HTTP status: %s",response.getStatusLine()));
+                    log.warn(String.format("Login failed! HTTP status %s: %s",statusCode,response.getStatusLine().getReasonPhrase()));
                 }
                 return false;
             } else {
                 log.debug(String.format("Succesfully logged in to account %s",username));
             }
-        } catch (Exception e) {
-            log.debug(String.format("Could not post to %s (%s)",Constants.URL_LOGIN,e.getMessage()));
+        } catch (IOException e) {
+            log.warn(String.format("Failed post to %s: %s",URL_LOGIN,e.getMessage()));
         } finally {
             try {
-                HttpUtils.readResponse(response);
-            } catch (Exception ignored) {}
+                if (response != null){
+                    HttpUtils.readResponse(response);
+                }
+            } catch (IOException ignored) {}
         }
 
         return true;
     }
 
     private boolean fetchCSRFToken() {
-        log.debug("Fetching CSRF token...");
-        HttpGet request = new HttpGet(Constants.URL_LOGIN);
+        log.debug("Fetching CSRF token from %s",URL_LOGIN);
+        HttpGet request = new HttpGet(URL_LOGIN);
         CloseableHttpResponse response = null;
+        
         try {
             response = httpClient.execute(request, httpContext);
             int statusCode = response.getStatusLine().getStatusCode();
 
             if(statusCode != 200){
-                log.debug("The server answered with a status code different from 200");
-                log.debug(String.format("HTTP status: %s",response.getStatusLine()));
+                log.warn("The server answered with an unexpected status code %s: %s", statusCode,response.getStatusLine().getReasonPhrase());
                 return false;
             } else {
                 String csrfToken = HttpUtils.getCookieValue(cookieStore, "csrftoken");
                 if(csrfToken == null){
-                    log.debug(String.format("%s did not answer with a CSRF token!",Constants.URL_LOGIN));
+                    log.warn(String.format("%s did not answer with a CSRF token!",URL_LOGIN));
                     return false;
                 }else {
                     log.debug(String.format("Fetched CSRF token: %s",csrfToken));
                 }
             }
-
         } catch (IOException e) {
-            log.debug(String.format("Could not fetch the page %s (%s)",Constants.URL_LOGIN,e.getMessage()));
+            log.warn(String.format("Failed to fetch the page %s: %s",URL_LOGIN,e.getMessage()));
+            return false;
         } finally {
             try {
-                HttpUtils.readResponse(response);
-            } catch (Exception ignored) {}
+                if (response != null){
+                    HttpUtils.readResponse(response);
+                }
+            } catch (IOException ignored) {}
         }
 
         return true;
     }
 
     /*  METHODS  */
+
+    /**
+     * Unscrobbles a track from a last.fm account
+     * @param artist The name of the artist
+     * @param trackName The name of the track
+     * @param timestamp The UTC scrobble date
+     * @return true if the unscrobble request was succesful; false otherwise
+     */
+    public boolean unscrobble(String artist, String trackName, Date timestamp){
+        int seconds = (int) (timestamp.getTime()/1000);
+        return unscrobble(artist,trackName,seconds);
+    }
 
     /**
      * Unscrobbles a track from a last.fm account
@@ -193,19 +209,20 @@ public class Unscrobbler {
         log.debug(String.format("Unscrobbling track %s -> %s",trackString,unscrobbleUrl));
 
         HttpPost request = new HttpPost(unscrobbleUrl);
-        request.setHeader(Constants.FIELD_REFERER,userUrl);
+        request.setHeader(FIELD_REFERER,userUrl);
 
         List<BasicNameValuePair> params = new ArrayList<>();
-        params.add(new BasicNameValuePair(Constants.FIELD_CSRFTOKEN, HttpUtils.getCookieValue(cookieStore, Constants.COOKIE_CSRFTOKEN)));
-        params.add(new BasicNameValuePair(Constants.FIELD_ARTIST, artist));
-        params.add(new BasicNameValuePair(Constants.FIELD_TRACK, trackName));
-        params.add(new BasicNameValuePair(Constants.FIELD_TIMESTAMP, timestamp));
+        params.add(new BasicNameValuePair(FIELD_CSRFTOKEN, HttpUtils.getCookieValue(cookieStore, COOKIE_CSRFTOKEN)));
+        params.add(new BasicNameValuePair(FIELD_ARTIST, artist));
+        params.add(new BasicNameValuePair(FIELD_TRACK, trackName));
+        params.add(new BasicNameValuePair(FIELD_TIMESTAMP, timestamp));
 
         try {
             UrlEncodedFormEntity paramEntity = new UrlEncodedFormEntity(params);
             request.setEntity(paramEntity);
         } catch (UnsupportedEncodingException e) {
-            log.debug(String.format("Could not create parameter list (%s)",e.getMessage()));
+            log.warn(String.format("Failed to create parameter list (%s)",e.getMessage()));
+            return false;
         }
 
         CloseableHttpResponse response = null;
@@ -215,16 +232,18 @@ public class Unscrobbler {
             int statusCode = response.getStatusLine().getStatusCode();
 
             if(statusCode != 200){
-                log.debug(String.format("Failed to unscrobble track %s! HTTP status: %s",trackString,response.getStatusLine()));
+                log.warn(String.format("Failed to unscrobble track %s! HTTP status %s: %s",trackString,statusCode,response.getStatusLine()));
                 return false;
             } else {
                 log.debug(String.format("Succesfully unscrobbled track %s",trackString));
             }
         } catch (Exception e) {
-            log.debug(String.format("Could not post to %s (%s)",unscrobbleUrl,e.getMessage()));
+            log.warn(String.format("Failed to post to %s: %s",unscrobbleUrl,e.getMessage()));
         } finally {
             try {
-                HttpUtils.readResponse(response);
+                if (response != null){
+                    HttpUtils.readResponse(response);
+                }
             } catch (Exception ignored) {}
         }
 
