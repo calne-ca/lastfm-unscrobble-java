@@ -6,7 +6,7 @@ Unscrobbler unscrobbler = new Unscrobbler();
 
 try {
     unscrobbler.login("username","password");
-} catch(AuthenticationFailedException | CsrfTokenFetchFailedException e){
+} catch(UnscrobblerAuthenticationException e){
     System.err.println("Failed to login to Last.fm! " + e.getMessage());
 }
 
@@ -18,7 +18,7 @@ unscrobbler.unscrobble("LIQ","[un]INSOMNIA","1497478667");
 <dependency>
     <groupId>net.beardbot</groupId>
     <artifactId>lastfm-unscrobble</artifactId>
-    <version>0.1</version>
+    <version>0.2</version>
 </dependency>
 ```
 
