@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017 Joscha Düringer
+ * Copyright (C) 2018 Joscha Düringer
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,28 +16,20 @@
  */
 package net.beardbot.lastfm.unscrobble;
 
-import org.apache.http.HttpEntity;
+import org.apache.commons.io.IOUtils;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.cookie.Cookie;
 import org.apache.http.util.EntityUtils;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 class HttpUtils {
-    static String readResponse(CloseableHttpResponse response) throws Exception {
-        BufferedReader reader;
-        String content = "";
-        String line;
-        HttpEntity entity = response.getEntity();
-
-        reader = new BufferedReader(new InputStreamReader(entity.getContent()));
-        while ((line = reader.readLine()) != null) {
-            content += line;
-        }
-        EntityUtils.consume(entity);
-        return content;
+    static String readResponse(CloseableHttpResponse response) throws IOException {
+        String responseBody = IOUtils.toString(response.getEntity().getContent(),StandardCharsets.UTF_8);
+        EntityUtils.consume(response.getEntity());
+        return responseBody;
     }
 
     static String getCookieValue(CookieStore cookieStore, String cookieName) {
