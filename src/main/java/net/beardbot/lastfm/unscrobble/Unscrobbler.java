@@ -33,6 +33,7 @@ import org.apache.http.message.BasicNameValuePair;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -82,7 +83,7 @@ public class Unscrobbler {
     }
 
     private boolean authenticate(String username, String password) {
-        log.debug(String.format("Logging in with username \"%s\" and password %s",username,"********"));
+        log.debug("Logging in with username \"{}\" and password {}",username,"********");
 
         HttpPost request = new HttpPost(URL_LOGIN);
         request.setHeader(HttpHeaders.REFERER,URL_LOGIN);
@@ -97,7 +98,7 @@ public class Unscrobbler {
             UrlEncodedFormEntity paramEntity = new UrlEncodedFormEntity(params);
             request.setEntity(paramEntity);
         } catch (UnsupportedEncodingException e) {
-            log.warn(String.format("Failed to create parameter list: %s",e.getMessage()));
+            log.warn("Failed to create parameter list: {}",e.getMessage());
             return false;
         }
 
@@ -111,11 +112,11 @@ public class Unscrobbler {
                 if(statusCode == 403 || statusCode == 401){
                     log.warn("Authentication failed! Are username and password correct?");
                 }else {
-                    log.warn(String.format("Login failed! HTTP status %s: %s",statusCode,response.getStatusLine().getReasonPhrase()));
+                    log.warn("Login failed! HTTP status {}: {}",statusCode,response.getStatusLine().getReasonPhrase());
                 }
                 return false;
             } else {
-                log.debug(String.format("Succesfully logged in to account %s",username));
+                log.debug("Succesfully logged in to account {}",username);
             }
         } catch (IOException e) {
             log.warn(String.format("Failed post to %s: %s",URL_LOGIN,e.getMessage()));
@@ -131,7 +132,7 @@ public class Unscrobbler {
     }
 
     private boolean fetchCSRFToken() {
-        log.debug("Fetching CSRF token from %s",URL_LOGIN);
+        log.debug("Fetching CSRF token from {}",URL_LOGIN);
         HttpGet request = new HttpGet(URL_LOGIN);
         CloseableHttpResponse response = null;
         
@@ -140,19 +141,19 @@ public class Unscrobbler {
             int statusCode = response.getStatusLine().getStatusCode();
 
             if(statusCode != 200){
-                log.warn("The server answered with an unexpected status code %s: %s", statusCode,response.getStatusLine().getReasonPhrase());
+                log.warn("The server answered with an unexpected status code {}: {}", statusCode,response.getStatusLine().getReasonPhrase());
                 return false;
             } else {
                 String csrfToken = HttpUtils.getCookieValue(cookieStore, "csrftoken");
                 if(csrfToken == null){
-                    log.warn(String.format("%s did not answer with a CSRF token!",URL_LOGIN));
+                    log.warn("{} did not answer with a CSRF token!",URL_LOGIN);
                     return false;
                 }else {
-                    log.debug(String.format("Fetched CSRF token: %s",csrfToken));
+                    log.debug("Fetched CSRF token: {}",csrfToken);
                 }
             }
         } catch (IOException e) {
-            log.warn(String.format("Failed to fetch the page %s: %s",URL_LOGIN,e.getMessage()));
+            log.warn("Failed to fetch the page {}: {}",URL_LOGIN,e.getMessage());
             return false;
         } finally {
             try {
@@ -205,7 +206,7 @@ public class Unscrobbler {
         }
 
         String trackString = String.format("%s - %s (%s)",artist,trackName,timestamp);
-        log.debug(String.format("Unscrobbling track %s -> %s",trackString,unscrobbleUrl));
+        log.debug("Unscrobbling track {} -> {}",trackString,unscrobbleUrl);
 
         HttpPost request = new HttpPost(unscrobbleUrl);
         request.setHeader(HttpHeaders.REFERER,userUrl);
@@ -217,28 +218,25 @@ public class Unscrobbler {
         params.add(new BasicNameValuePair(FIELD_TRACK, trackName));
         params.add(new BasicNameValuePair(FIELD_TIMESTAMP, timestamp));
 
-        try {
-            UrlEncodedFormEntity paramEntity = new UrlEncodedFormEntity(params);
-            request.setEntity(paramEntity);
-        } catch (UnsupportedEncodingException e) {
-            log.warn(String.format("Failed to create parameter list (%s)",e.getMessage()));
-            return false;
-        }
+        UrlEncodedFormEntity paramEntity = new UrlEncodedFormEntity(params,StandardCharsets.UTF_8);
+        request.setEntity(paramEntity);
 
         CloseableHttpResponse response = null;
+
+        log.debug("Request line: {}",HttpUtils.readRequest(request));
 
         try {
             response = httpClient.execute(request, httpContext);
             int statusCode = response.getStatusLine().getStatusCode();
 
             if(statusCode != 200){
-                log.warn(String.format("Failed to unscrobble track %s! HTTP status %s: %s",trackString,statusCode,response.getStatusLine()));
+                log.warn("Failed to unscrobble track {}! HTTP status {}: {}",trackString,statusCode,response.getStatusLine());
                 return false;
             } else {
-                log.debug(String.format("Succesfully unscrobbled track %s",trackString));
+                log.debug("Succesfully unscrobbled track {}",trackString);
             }
         } catch (Exception e) {
-            log.warn(String.format("Failed to post to %s: %s",unscrobbleUrl,e.getMessage()));
+            log.warn("Failed to post to {}: {}",unscrobbleUrl,e.getMessage());
         } finally {
             try {
                 if (response != null){

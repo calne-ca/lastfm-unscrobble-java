@@ -18,7 +18,7 @@ unscrobbler.unscrobble("LIQ","[un]INSOMNIA","1497478667");
 <dependency>
     <groupId>net.beardbot</groupId>
     <artifactId>lastfm-unscrobble</artifactId>
-    <version>0.2</version>
+    <version>0.3</version>
 </dependency>
 ```
 
