@@ -19,6 +19,7 @@ package net.beardbot.lastfm.unscrobble;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.cookie.Cookie;
 import org.apache.http.util.EntityUtils;
 
@@ -26,12 +27,18 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 class HttpUtils {
+    static String readRequest(HttpEntityEnclosingRequestBase request) {
+        String requestBody = null;
+        try {
+            requestBody = IOUtils.toString(request.getEntity().getContent(),StandardCharsets.UTF_8);
+        } catch (IOException ignored) {}
+        return requestBody;
+    }
     static String readResponse(CloseableHttpResponse response) throws IOException {
         String responseBody = IOUtils.toString(response.getEntity().getContent(),StandardCharsets.UTF_8);
         EntityUtils.consume(response.getEntity());
         return responseBody;
     }
-
     static String getCookieValue(CookieStore cookieStore, String cookieName) {
         String value = null;
         for (Cookie cookie: cookieStore.getCookies()) {
