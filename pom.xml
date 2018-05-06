@@ -4,7 +4,7 @@
 
     <groupId>net.beardbot</groupId>
     <artifactId>lastfm-unscrobble</artifactId>
-    <version>0.2-SNAPSHOT</version>
+    <version>0.2</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>A simple unscrobbler for Last.FM</description>

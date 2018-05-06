@@ -57,13 +57,11 @@ public class Unscrobbler {
         httpClient.close();
     }
 
-    /*  LOGIN  */
-
     /**
      * Performs a login to last.fm
      * @param username The username of the last.fm account
      * @param password The password of the last.fm account
-     * @throws UnscrobblerAuthenticationException When the authentication failed. This will most likely be due to invalid credentials.
+     * @throws UnscrobblerAuthenticationException If the authentication failed. This will most likely be due to invalid credentials.
      */
     public void login(String username, String password) throws UnscrobblerAuthenticationException {
         httpContext = HttpClientContext.create();
@@ -166,8 +164,6 @@ public class Unscrobbler {
 
         return true;
     }
-
-    /*  METHODS  */
 
     /**
      * Unscrobbles a track from a last.fm account
