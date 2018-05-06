@@ -18,6 +18,7 @@ package net.beardbot.lastfm.unscrobble;
 
 import lombok.extern.slf4j.Slf4j;
 import net.beardbot.lastfm.unscrobble.exception.UnscrobblerAuthenticationException;
+import org.apache.http.HttpHeaders;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -46,6 +47,7 @@ public class Unscrobbler {
 
     private String userUrl;
     private String unscrobbleUrl;
+    private String userAgent = DEFAULT_USER_AGENT;
 
     @Override
     protected void finalize() throws Throwable {
@@ -85,7 +87,8 @@ public class Unscrobbler {
         log.debug(String.format("Logging in with username \"%s\" and password %s",username,"********"));
 
         HttpPost request = new HttpPost(URL_LOGIN);
-        request.setHeader(FIELD_REFERER,URL_LOGIN);
+        request.setHeader(HttpHeaders.REFERER,URL_LOGIN);
+        request.setHeader(HttpHeaders.USER_AGENT, userAgent);
 
         List<BasicNameValuePair> params = new ArrayList<>();
         params.add(new BasicNameValuePair(FIELD_CSRFTOKEN, HttpUtils.getCookieValue(cookieStore, COOKIE_CSRFTOKEN)));
@@ -209,7 +212,8 @@ public class Unscrobbler {
         log.debug(String.format("Unscrobbling track %s -> %s",trackString,unscrobbleUrl));
 
         HttpPost request = new HttpPost(unscrobbleUrl);
-        request.setHeader(FIELD_REFERER,userUrl);
+        request.setHeader(HttpHeaders.REFERER,userUrl);
+        request.setHeader(HttpHeaders.USER_AGENT, userAgent);
 
         List<BasicNameValuePair> params = new ArrayList<>();
         params.add(new BasicNameValuePair(FIELD_CSRFTOKEN, HttpUtils.getCookieValue(cookieStore, COOKIE_CSRFTOKEN)));
@@ -248,5 +252,13 @@ public class Unscrobbler {
         }
 
         return true;
+    }
+
+    public String getUserAgent() {
+        return userAgent;
+    }
+
+    public void setUserAgent(String userAgent) {
+        this.userAgent = userAgent;
     }
 }
