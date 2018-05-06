@@ -23,14 +23,14 @@ class Constants {
     static final String URL_USER = "https://www.last.fm/user/" + PLACEHOLDER_USER;
     static final String URL_UNSCROBBLE = "https://www.last.fm/user/" + PLACEHOLDER_USER + "/unscrobble";
 
-    static final String FIELD_REFERER = "Referer";
     static final String FIELD_CSRFTOKEN = "csrfmiddlewaretoken";
-    static final String COOKIE_CSRFTOKEN = "csrftoken";
-
     static final String FIELD_USERNAME = "username";
     static final String FIELD_PASSWORD = "password";
-
     static final String FIELD_ARTIST = "artist_name";
     static final String FIELD_TRACK = "track_name";
     static final String FIELD_TIMESTAMP = "timestamp";
+
+    static final String COOKIE_CSRFTOKEN = "csrftoken";
+
+    static final String DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0";
 }
